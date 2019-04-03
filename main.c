@@ -199,10 +199,38 @@ BoardInit(void)
 //! \return None.
 //
 //****************************************************************************
+void binary_value(int value){
+    MAP_UtilsDelay(8000000);
+    switch(value){
+    case 1:     GPIO_IF_LedOn(9);
+                break;
+    case 2:     GPIO_IF_LedOff(9);
+                GPIO_IF_LedOn(10);
+                break;
+    case 3:     GPIO_IF_LedOn(9);
+                break;
+    case 4:     GPIO_IF_LedOff(9);
+                GPIO_IF_LedOff(10);
+                GPIO_IF_LedOn(11);
+                break;
+    case 5:     GPIO_IF_LedOn(9);
+                break;
+    case 6:     GPIO_IF_LedOff(9);
+                GPIO_IF_LedOn(10);
+                break;
+    case 7:     GPIO_IF_LedOn(9);
+                break;
+    default:    GPIO_IF_LedOff(MCU_ALL_LED_IND);
+                break;
+    }
+}
+
+
 void poll(int blink){
     int SW_2 = GPIOPinRead(0x40006000, 0x40);
     int first = 0;
     while (SW_2 > 0){
+            GPIOPinWrite(GPIOA3_BASE, 0x10, 0x10);
             if (first == 0)
                 Message("SW2 Pressed\n\r");
                 first = first + 1;
@@ -222,7 +250,8 @@ void poll(int blink){
             }
             SW_2 = GPIOPinRead(0x40006000, 0x40);
         }
-
+    GPIOPinWrite(GPIOA3_BASE, 0x10, 0x00);
+    MAP_UtilsDelay(8000000);
 }
 int
 main()
@@ -255,50 +284,34 @@ main()
     //GPIO_IF_LedOn(MCU_GREEN_LED_GPIO);
     char * word = "check is: ";
     char number[5];
-    int SW_2;
-    int SW_3;
+    int SW_2 = 0;
+    int SW_3 = 0;
     int blink = 0;
+    int value = 0;
+    GPIOPinWrite(GPIOA3_BASE, 0x10, 0x00);
     while(1){
     int check = 0;
-    SW_2 = GPIOPinRead(0x40006000, 0x40);
-    //check 64 is SW2 ON
-    SW_3= GPIOPinRead(0x40005000, 0x20);
+
     //check 32 is SW3 ON
     //Message(word);
     //sprintf(number, "%d", check);
     //Message(number);
     MAP_UtilsDelay(8000000);
+    int value = 0;
     if (SW_3 > 0){
         Message("SW3 Pressed\n\r");
-        GPIO_IF_LedOn(9);
-        poll(blink);
-        MAP_UtilsDelay(8000000);
-        GPIO_IF_LedOff(9);
-        GPIO_IF_LedOn(10);
-        poll(blink);
-        MAP_UtilsDelay(8000000);
-        GPIO_IF_LedOn(9);
-        poll(blink);
-        MAP_UtilsDelay(8000000);
-        GPIO_IF_LedOff(9);
-        GPIO_IF_LedOff(10);
-        GPIO_IF_LedOn(11);
-        poll(blink);
-        MAP_UtilsDelay(8000000);
-        GPIO_IF_LedOn(9);
-        poll(blink);
-        MAP_UtilsDelay(8000000);
-        GPIO_IF_LedOff(9);
-        GPIO_IF_LedOn(10);
-        poll(blink);
-        MAP_UtilsDelay(8000000);
-        GPIO_IF_LedOn(9);
-        poll(blink);
-        MAP_UtilsDelay(16000000);
-        GPIO_IF_LedOff(MCU_ALL_LED_IND);
+        while(value < 8 && SW_2 == 0){
+            GPIOPinWrite(GPIOA3_BASE, 0x10, 0x00);
+            binary_value(value++);
+            SW_2 = GPIOPinRead(0x40006000, 0x40);
+        }
+        SW_3 = 0;
     }
     if (SW_2 > 0){
         Message("SW2 Pressed\n\r");
+
+        while (SW_3 == 0){
+            GPIOPinWrite(GPIOA3_BASE, 0x10, 0x10);
         if (blink == 0){
         GPIO_IF_LedOn(9);
         GPIO_IF_LedOn(10);
@@ -313,6 +326,17 @@ main()
             blink = 0;
             MAP_UtilsDelay(8000000);
         }
+        SW_3= GPIOPinRead(0x40005000, 0x20);
+        }
+        SW_2 = 0;
+    }
+    else{
+        SW_2 = GPIOPinRead(0x40006000, 0x40);
+        //check 64 is SW2 ON
+        SW_3= GPIOPinRead(0x40005000, 0x20);
+        GPIO_IF_LedOff(9);
+        GPIO_IF_LedOff(10);
+        GPIO_IF_LedOff(11);
     }
     //LEDBlinkyRoutine();
     }
