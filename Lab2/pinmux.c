@@ -82,22 +82,24 @@ void PinMuxConfig(void)
     PRCMPeripheralClkEnable(PRCM_GPIOA2, PRCM_RUN_MODE_CLK);
     PRCMPeripheralClkEnable(PRCM_GPIOA3, PRCM_RUN_MODE_CLK);
     PRCMPeripheralClkEnable(PRCM_GSPI, PRCM_RUN_MODE_CLK);
-
+    //p18 = RESET
+    //p15 = OC
+    //p21 = DC
     //
-    // Configure PIN_15 for GPIO Input
+    // Configure PIN_15 for GPIO Input (OC) aka Chip Select
     //
     PinTypeGPIO(PIN_15, PIN_MODE_0, false);
     GPIODirModeSet(GPIOA2_BASE, 0x40, GPIO_DIR_MODE_IN);
 
     //
-    // Configure PIN_18 for GPIO Input
+    // Configure PIN_18 for GPIO Input (RESET)
     //
     PinTypeGPIO(PIN_18, PIN_MODE_0, false);
     GPIODirModeSet(GPIOA3_BASE, 0x10, GPIO_DIR_MODE_IN);
 
     //
-    // Configure PIN_21 for GPIO Input
-    //
+    // Configure PIN_21 for GPIO Input (DC) Data or Command
+    // High for data, low for command
     PinTypeGPIO(PIN_21, PIN_MODE_0, false);
     GPIODirModeSet(GPIOA3_BASE, 0x2, GPIO_DIR_MODE_IN);
 

@@ -57,7 +57,6 @@
 #include "prcm.h"
 #include "uart.h"
 #include "interrupt.h"
-
 // Common interface includes
 #include "uart_if.h"
 #include "pinmux.h"
@@ -136,26 +135,34 @@ void main()
     // Muxing UART and SPI lines.
     //
     PinMuxConfig();
-
-    //
-    // Initialising the Terminal.
-    //
-    InitTerm();
-
-    //
-    // Clearing the Terminal.
-    //
-    ClearTerm();
-    GPIOPinWrite(GPIOA3_BASE, 0x2, 0x00);
-    GPIOPinWrite(GPIOA3_BASE, 0x10, 0x00);
-    GPIOPinWrite(GPIOA2_BASE, 0x40, 0x40);
     //
     // Enable the SPI module clock
-    //
+    //\
+
     MAP_PRCMPeripheralClkEnable(PRCM_GSPI,PRCM_RUN_MODE_CLK);
+
+
     MAP_PRCMPeripheralReset(PRCM_GSPI);
 
 
+//Start of MasterMain()
+    //unsigned long ulUserData;
+    //unsigned long ulDummy;
+
+    //
+    // Initialize the message
+    //
+    //memcpy(g_ucTxBuff,MASTER_MSG,sizeof(MASTER_MSG));
+
+    //
+    // Set Tx buffer index
+    //
+   // ucTxBuffNdx = 0;
+    //ucRxBuffNdx = 0;
+
+    //
+    // Reset SPI
+    //
     MAP_SPIReset(GSPI_BASE);
 
     //
@@ -169,29 +176,23 @@ void main()
                      SPI_CS_ACTIVEHIGH |
                      SPI_WL_8));
 
-
     //
     // Enable SPI for communication
     //
     MAP_SPIEnable(GSPI_BASE);
-
-    //
-   //MAP_SPITransfer(GSPI_BASE,g_ucTxBuff,g_ucRxBuff,50,
-           // SPI_CS_ENABLE|SPI_CS_DISABLE);
-
-    // Display the Banner
-    //
-    Message("\n\n\n\r");
-    Message("\t\t   ********************************************\n\r");
-    Message("\t\t        CC3200 SPI Demo Application  \n\r");
-    Message("\t\t   ********************************************\n\r");
-    Message("\n\n\n\r");
-
-    //
     // Reset the peripheral
     //
+    //Set reset low to initialize chip
+    GPIOPinWrite(GPIOA3_BASE, 0x10, 0x00); //P18
 
-    float p = 3.1415926;
+    //Chip select set to high initially
+    GPIOPinWrite(GPIOA2_BASE, 0x40, 0x40);
+
+    Adafruit_Init();
+    fillScreen(CYAN);
+    delay(3000);
+    testdrawrects(RED);
+    //float p = 3.1415926;
 
       // You can optionally rotate the display by running the line below.
       // Note that a value of 0 means no rotation, 1 means 90 clockwise,
@@ -200,6 +201,7 @@ void main()
       // NOTE: The test pattern at the start will NOT be rotated!  The code
       // for rendering the test pattern talks directly to the display and
       // ignores any rotation.
+    /*
       fillRect(0, 0, 128, 128, BLUE);
       MAP_UtilsDelay(8000000);
       char c = 0;
@@ -209,7 +211,7 @@ void main()
           x++;
           y++;
           drawChar(x, y, c, RED, BLACK, 1);
-      }
+      }*/
       /*
       lcdTestPattern();
       delay(500);

@@ -33,10 +33,11 @@ void writeCommand(unsigned char c) {
 //Pin needs to be pulled low
     unsigned long ulDummy;
     MAP_SPICSEnable(GSPI_BASE);
-
-    GPIOPinWrite(GPIOA3_BASE, 0x2, 0x2);
+    GPIOPinWrite(GPIOA3_BASE, 0x2, 0x0);
+    GPIOPinWrite(GPIOA2_BASE, 0x40, 0x00);
     MAP_SPIDataPut(GSPI_BASE,c);
-    MAP_SPIDataGet(GSPI_BASE,&ulDummy);
+    //MAP_SPIDataGet(GSPI_BASE,&ulDummy);
+    GPIOPinWrite(GPIOA2_BASE, 0x40, 0x40);
     MAP_SPICSDisable(GSPI_BASE);
 }
 //*****************************************************************************
@@ -49,9 +50,11 @@ void writeData(unsigned char c) {
 */
     unsigned long ulDummy;
     MAP_SPICSEnable(GSPI_BASE);
-    GPIOPinWrite(GPIOA3_BASE, 0x2, 0x0);
+    GPIOPinWrite(GPIOA3_BASE, 0x2, 0x2);
+    GPIOPinWrite(GPIOA2_BASE, 0x40, 0x00);
     MAP_SPIDataPut(GSPI_BASE,c);
     MAP_SPIDataGet(GSPI_BASE,&ulDummy);
+    GPIOPinWrite(GPIOA2_BASE, 0x40, 0x40);
     MAP_SPICSDisable(GSPI_BASE);
 }
 
