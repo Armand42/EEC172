@@ -60,7 +60,7 @@
 // Common interface includes
 #include "uart_if.h"
 #include "pinmux.h"
-
+#include "gpio.h"
 #define SPI_IF_BIT_RATE  100000
 #define TR_BUFF_SIZE     100
 
@@ -183,14 +183,14 @@ void main()
     // Reset the peripheral
     //
     //Set reset low to initialize chip
-    GPIOPinWrite(GPIOA3_BASE, 0x10, 0x00); //P18
+    //GPIOPinWrite(GPIOA3_BASE, 0x10, 0x00); //P18
 
     //Chip select set to high initially
     GPIOPinWrite(GPIOA2_BASE, 0x40, 0x40);
 
     Adafruit_Init();
     fillScreen(CYAN);
-    delay(3000);
+   // delay(3000);
     testdrawrects(RED);
     //float p = 3.1415926;
 

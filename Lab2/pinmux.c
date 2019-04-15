@@ -89,19 +89,20 @@ void PinMuxConfig(void)
     // Configure PIN_15 for GPIO Input (OC) aka Chip Select
     //
     PinTypeGPIO(PIN_15, PIN_MODE_0, false);
-    GPIODirModeSet(GPIOA2_BASE, 0x40, GPIO_DIR_MODE_IN);
+    GPIODirModeSet(GPIOA2_BASE, 0x40, GPIO_DIR_MODE_OUT);
 
     //
     // Configure PIN_18 for GPIO Input (RESET)
     //
     PinTypeGPIO(PIN_18, PIN_MODE_0, false);
-    GPIODirModeSet(GPIOA3_BASE, 0x10, GPIO_DIR_MODE_IN);
+    GPIODirModeSet(GPIOA3_BASE, 0x10, GPIO_DIR_MODE_OUT);
 
     //
-    // Configure PIN_21 for GPIO Input (DC) Data or Command
+    // Configure PIN_8 for GPIO Input (DC) Data or Command
     // High for data, low for command
-    PinTypeGPIO(PIN_21, PIN_MODE_0, false);
-    GPIODirModeSet(GPIOA3_BASE, 0x2, GPIO_DIR_MODE_IN);
+    PinTypeGPIO(PIN_08, PIN_MODE_0, false);
+    GPIODirModeSet(GPIOA2_BASE, 0x2, GPIO_DIR_MODE_OUT);
+
 
     //
     // Configure PIN_05 for SPI0 GSPI_CLK
