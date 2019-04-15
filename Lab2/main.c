@@ -189,78 +189,53 @@ void main()
     GPIOPinWrite(GPIOA2_BASE, 0x40, 0x40);
 
     Adafruit_Init();
-    fillScreen(CYAN);
-   // delay(3000);
-    testdrawrects(RED);
-    //float p = 3.1415926;
+    fillScreen(BLACK);
+    int i = 0;
+    char c = 0;
+    for (c; c < 128; c++){
+        drawChar(32, 32, c, RED, BLACK,10 );
+        MAP_UtilsDelay(8000000);
+    }
+    fillScreen(BLACK);
+    char msg[12] = "Hello World\n";
+    int x = 10;
+    int y = 10;
+    int i = 0;
 
-      // You can optionally rotate the display by running the line below.
-      // Note that a value of 0 means no rotation, 1 means 90 clockwise,
-      // 2 means 180 degrees clockwise, and 3 means 270 degrees clockwise.
-      //tft.setRotation(1);
-      // NOTE: The test pattern at the start will NOT be rotated!  The code
-      // for rendering the test pattern talks directly to the display and
-      // ignores any rotation.
-    /*
-      fillRect(0, 0, 128, 128, BLUE);
-      MAP_UtilsDelay(8000000);
-      char c = 0;
-      int x = 0;
-      int y = 0;
-      for (c; c < 128; c++){
-          x++;
-          y++;
-          drawChar(x, y, c, RED, BLACK, 1);
-      }*/
-      /*
-      lcdTestPattern();
-      delay(500);
-
-      tft.invert(true);
-      delay(100);
-      tft.invert(false);
-      delay(100);
-
-      tft.fillScreen(BLACK);
-      testdrawtext("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur adipiscing ante sed nibh tincidunt feugiat. Maecenas enim massa, fringilla sed malesuada et, malesuada sit amet turpis. Sed porttitor neque ut ante pretium vitae malesuada nunc bibendum. Nullam aliquet ultrices massa eu hendrerit. Ut sed nisi lorem. In vestibulum purus a tortor imperdiet posuere. ", WHITE);
-      delay(500);
-
-      // tft print function!
-      tftPrintTest();
-      delay(500);
-
-      //a single pixel
-      tft.drawPixel(tft.width()/2, tft.height()/2, GREEN);
-      delay(500);
-
-      // line draw test
-      testlines(YELLOW);
-      delay(500);
-
-      // optimized lines
-      testfastlines(RED, BLUE);
-      delay(500);
-
-
-      testdrawrects(GREEN);
-      delay(1000);
-
-      testfillrects(YELLOW, MAGENTA);
-      delay(1000);
-
-      tft.fillScreen(BLACK);
-      testfillcircles(10, BLUE);
-      testdrawcircles(10, WHITE);
-      delay(1000);
-
-      testroundrects();
-      delay(500);
-
-      testtriangles();
-      delay(500);
-
-      Serial.println("done");
-      delay(1000);
-    */
+    for (i = 0; i < 11; i++){
+        drawChar(x, 10, msg[i], GREEN, BLACK, 1);
+        x = x + 10;
+    }
+    lcdTestPattern();
+    MAP_UtilsDelay(8000000);
+    fillScreen(BLACK);
+    lcdTestPattern2();
+    MAP_UtilsDelay(8000000);
+    fillScreen(BLACK);
+    testlines(MAGENTA);
+    MAP_UtilsDelay(8000000);
+    fillScreen(BLACK);
+    testfastlines(BLUE, GREEN);
+    MAP_UtilsDelay(8000000);
+    fillScreen(BLACK);
+    testdrawrects(YELLOW);
+    MAP_UtilsDelay(8000000);
+    fillScreen(BLACK);
+    testfillrects(RED, BLUE);
+    MAP_UtilsDelay(8000000);
+    fillScreen(BLACK);
+    testfillcircles(5, CYAN);
+    MAP_UtilsDelay(8000000);
+    fillScreen(BLACK);
+    testdrawcircles(5, CYAN);
+    MAP_UtilsDelay(8000000);
+    fillScreen(BLACK);
+    testroundrects();
+    MAP_UtilsDelay(8000000);
+    fillScreen(BLACK);
+    testtriangles();
+    MAP_UtilsDelay(8000000);
+    fillScreen(BLACK);
+    return;
     }
 
