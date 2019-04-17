@@ -229,7 +229,7 @@ void main()
     //
     I2C_IF_Open(I2C_MASTER_MODE_FST);
     unsigned char ucDevAddr, ucRegOffset, ucRdLen;
-      unsigned char aucRdDataBuf[4];
+      unsigned char aucRdDataBuf[6];
 
 
       //
@@ -245,7 +245,7 @@ void main()
 
       //
       // Get the length of data to be read
-      ucRdLen = 4;
+      ucRdLen = 6;
       //RETERR_IF_TRUE(ucLen > sizeof(aucDataBuf));
 
       //
@@ -256,7 +256,7 @@ void main()
       char y_acc;
       int old_x = 0;
       int old_y = 0;
-      int radius = 4;
+      int radius = 6;
       while(1){
           fillCircle(old_x, old_y, radius, RED);
       RET_IF_ERR(I2C_IF_Write(ucDevAddr,&ucRegOffset,1,0));
@@ -272,9 +272,9 @@ void main()
       //range of x_acc and y_acc is 0-255
       //8-bit two's complement
       //two's complement so the first bit is positive or negative
-      fillCircle(x, y, radius, BLUE);
-      old_x = x;
-      old_y = y;
+      fillCircle(y, x , radius, BLUE);
+      old_x = y;
+      old_y = x;
       if (x_acc > 127){
           x_acc = x_acc ^ 0xFF;
           x_acc = x_acc + 1;
@@ -294,15 +294,15 @@ void main()
       //at max speed 127/20
       //6.35 pixels per update
       int speed = 200;
-      x = x + x_acc/speed;
+      x = x - x_acc/speed;
       y = y + y_acc/speed;
-      if (x < 0)
-          x = 0;
-      if (y < 0)
-          y = 0;
-      if (x > 127)
-          x = 127;
-      if (y > 127)
-          y = 127;
+      if (x < 3)
+          x = 3;
+      if (y < 3)
+          y = 3;
+      if (x > 124)
+          x = 124;
+      if (y > 124)
+          y = 124;
       }
 }
