@@ -278,13 +278,15 @@ void main()
       if (x_acc > 127){
           x_acc = x_acc ^ 0xFF;
           x_acc = x_acc + 1;
-          x_acc = -x_acc;
+
       }
+      x_acc = -x_acc;
       if (y_acc > 127){
           y_acc = y_acc ^ 0xFF;
           y_acc = y_acc + 1;
-          y_acc = -y_acc;
+
       }
+      y_acc = -y_acc;
       //the circle should go from left to right in two seconds
       //We do not entirely know entire pipeline length
       //Assume updates 10 times a second or something
@@ -295,7 +297,7 @@ void main()
       //6.35 pixels per update
       int speed = 200;
       x = x - x_acc/speed;
-      y = y + y_acc/speed;
+      y = y - y_acc/speed;
       if (x < 3)
           x = 3;
       if (y < 3)
