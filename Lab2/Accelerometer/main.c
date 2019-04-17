@@ -257,11 +257,11 @@ void main()
       int old_x = 0;
       int old_y = 0;
       int radius = 6;
-      int speed = 200;
+      int speed = 10;
       int x_val = 0;
       int y_val = 0;
       while(1){
-          fillCircle(old_x, old_y, radius, RED);
+      fillCircle(old_x, old_y, radius, RED);
       RET_IF_ERR(I2C_IF_Write(ucDevAddr,&ucRegOffset,1,0));
 
       //
@@ -282,21 +282,21 @@ void main()
           x_acc = x_acc ^ 0xFF;
           x_acc = x_acc + 1;
           x_val = x_acc;
-          x = x +  ((int) x_acc)/speed;
+          x =  x -  (x_val)/speed;
       }
       else{
           x_val = x_acc;
-          x = x -  ((int) (x_acc))/speed;
+          x = x + (x_val)/speed;
       }
       if (y_acc > 127){
           y_acc = y_acc ^ 0xFF;
           y_acc = y_acc + 1;
           y_val = y_acc;
-          y = y + ((int) (y_acc))/speed;
+          y = y - (y_val)/speed;
       }
       else{
           y_val = y_acc;
-          y = y - ((int) (y_acc))/speed;
+          y = y + (y_val)/speed;
       }
       //the circle should go from left to right in two seconds
       //We do not entirely know entire pipeline length
@@ -309,13 +309,13 @@ void main()
 
       //x = x + x_acc/speed;
       //y = y + y_acc/speed;
-      if (x < 3)
-          x = 3;
-      if (y < 3)
-          y = 3;
-      if (x > 124)
-          x = 124;
-      if (y > 124)
-          y = 124;
+      if (x < 4)
+          x = 4;
+      if (y < 4)
+          y = 4;
+      if (x > 123)
+          x = 123;
+      if (y > 123)
+          y = 123;
       }
 }
