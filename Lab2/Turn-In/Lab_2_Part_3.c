@@ -1,3 +1,5 @@
+//Griffin Kimura
+//Armand Nasseri
 /***************************************************
   This is a example sketch demonstrating graphic drawing
   capabilities of the SSD1351 library for the 1.5"
