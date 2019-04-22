@@ -1,4 +1,6 @@
-
+//Griffin Kimura
+//Armand Nasseri
+//EEC 172s
 // Standard includes
 #include <string.h>
 
