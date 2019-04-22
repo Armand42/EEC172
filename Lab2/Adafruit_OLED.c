@@ -18,7 +18,7 @@
 
 // Common interface includes
 #include "uart_if.h"
-#include "pin_mux_config.h"
+#include "pinmux.h"
 
 #include "Adafruit_SSD1351.h"
 
@@ -30,7 +30,15 @@ void writeCommand(unsigned char c) {
 /* Write a function to send a command byte c to the OLED via
 *  SPI.
 */
-
+//Pin needs to be pulled low
+    unsigned long ulDummy;
+    GPIOPinWrite(GPIOA2_BASE, 0x2, 0x00);
+    MAP_SPICSEnable(GSPI_BASE);
+    GPIOPinWrite(GPIOA2_BASE, 0x40, 0x00);
+    MAP_SPIDataPut(GSPI_BASE,c);
+    MAP_SPIDataGet(GSPI_BASE,&ulDummy);
+    GPIOPinWrite(GPIOA2_BASE, 0x40, 0x40);
+    MAP_SPICSDisable(GSPI_BASE);
 }
 //*****************************************************************************
 
@@ -40,6 +48,14 @@ void writeData(unsigned char c) {
 /* Write a function to send a data byte c to the OLED via
 *  SPI.
 */
+    unsigned long ulDummy;
+    GPIOPinWrite(GPIOA2_BASE, 0x2, 0x2);
+    MAP_SPICSEnable(GSPI_BASE);
+    GPIOPinWrite(GPIOA2_BASE, 0x40, 0x00);
+    MAP_SPIDataPut(GSPI_BASE,c);
+    MAP_SPIDataGet(GSPI_BASE,&ulDummy);
+    GPIOPinWrite(GPIOA2_BASE, 0x40, 0x40);
+    MAP_SPICSDisable(GSPI_BASE);
 }
 
 //*****************************************************************************
