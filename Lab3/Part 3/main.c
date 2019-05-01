@@ -149,6 +149,10 @@ static void  RecieverIntHandler(void){
         character = UARTCharGet(UARTA1_BASE);
         rcv_arr[msg_length++] = (char) character;
     }
+    int i = 0;
+    for (i = 0; i < msg_length; i++){
+        Report("%c", rcv_arr[i]);
+    }
     ulStatus = MAP_UARTIntStatus (UARTA1_BASE, true);
     MAP_UARTIntClear(UARTA1_BASE, ulStatus);
 }
@@ -254,6 +258,8 @@ int main() {
 
     //ulStatus = MAP_GPIOIntStatus (GPIOA2_BASE, false);
     //MAP_GPIOIntClear(GPIOA2_BASE, ulStatus);
+    ulStatus = MAP_UARTIntStatus (UARTA1_BASE, false);
+    MAP_UARTIntClear(UARTA1_BASE, ulStatus);
     ulStatus = MAP_GPIOIntStatus (GPIOA1_BASE, false);
     MAP_GPIOIntClear(GPIOA1_BASE, ulStatus); // clear interrupts on GPIOA1
     //ulStatus = MAP_GPIOIntStatus (switch2.port, false);
@@ -319,9 +325,12 @@ int main() {
 
     Adafruit_Init();
     fillScreen(RED);
+    MAP_UARTIntEnable(UARTA1_BASE, UART_INT_RX);
     int rcvtxt = 0;
     long character;
     int current = -1;
+    int previous = -1;
+    int tran_idx = 0;
     char cr = 'a';
     //int i = 0;
     while (1) {
@@ -333,9 +342,10 @@ int main() {
             for (i = 0; i < 32; i++){
                 Report("%d", buf[i]);
             }
-            Report("  Score: %d", score);
+
             Message("\r\n");
             */
+            //Report("  Score: %d", score);
             switch (score){
             case 79370471: Message("0\r\n"); current = 0; break;
             case 79396991: Message("1\r\n"); current = 1; break;
@@ -351,9 +361,13 @@ int main() {
             case 79401581: Message("LAST\r\n"); current = 11; break;
             default: Message("KEY NOT FOUND \r\n"); current = -1; break;
             }
-            if (current = 11){
+            if (current == 10){
                 Message("Send message\r\n");
+                cr = previous + 'a';
+                Report("%c\r\n", cr);
+                MAP_UARTCharPut(UARTA1_BASE, cr);
             }
+            previous = current;
             Edge = 0;
             index = 0;
             score = 0;
@@ -361,10 +375,11 @@ int main() {
         if (msgrcv){
             int i;
             for (i = 0; i < msg_length; i++){
-                drawChar(rcvtxt*4, 60, rcv_arr[i], GREEN, BLACK, 1);
+                drawChar(i*10, 60, rcv_arr[i], GREEN, BLACK, 2);
                 rcvtxt++;
             }
             msgrcv = 0;
+            msg_length = 0;
         }
 
     }
