@@ -321,7 +321,8 @@ int main() {
     fillScreen(RED);
     int rcvtxt = 0;
     long character;
-
+    int current = -1;
+    char cr = 'a';
     //int i = 0;
     while (1) {
         while (Edge == 0 && msgrcv == 0) {;}
@@ -336,19 +337,22 @@ int main() {
             Message("\r\n");
             */
             switch (score){
-            case 79370471: Message("0\r\n"); break;
-            case 79396991: Message("1\r\n"); break;
-            case 79380671: Message("2\r\n"); break;
-            case 79413311: Message("3\r\n"); break;
-            case 79405151: Message("4\r\n"); break;
-            case 79388831: Message("5\r\n"); break;
-            case 79421471: Message("6\r\n"); break;
-            case 79401071: Message("7\r\n"); break;
-            case 79384751: Message("8\r\n"); break;
-            case 79417391: Message("9\r\n"); break;
-            case 79373021: Message("MUTE\r\n"); break;
-            case 79401581: Message("LAST\r\n"); break;
-            default: Message("KEY NOT FOUND \r\n");
+            case 79370471: Message("0\r\n"); current = 0; break;
+            case 79396991: Message("1\r\n"); current = 1; break;
+            case 79380671: Message("2\r\n"); current = 2; break;
+            case 79413311: Message("3\r\n"); current = 3; break;
+            case 79405151: Message("4\r\n"); current = 4; break;
+            case 79388831: Message("5\r\n"); current = 5; break;
+            case 79421471: Message("6\r\n"); current = 6; break;
+            case 79401071: Message("7\r\n"); current = 7; break;
+            case 79384751: Message("8\r\n"); current = 8; break;
+            case 79417391: Message("9\r\n"); current = 9; break;
+            case 79373021: Message("MUTE\r\n"); current = 10; break;
+            case 79401581: Message("LAST\r\n"); current = 11; break;
+            default: Message("KEY NOT FOUND \r\n"); current = -1; break;
+            }
+            if (current = 11){
+                Message("Send message\r\n");
             }
             Edge = 0;
             index = 0;
