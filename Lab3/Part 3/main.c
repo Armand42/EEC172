@@ -232,7 +232,7 @@ BoardInit(void) {
 //! \return None.
 //
 //****************************************************************************
-int main() {
+ int main() {
     unsigned long ulStatus;
 
     BoardInit();
@@ -293,8 +293,9 @@ int main() {
     //Enable Interrupts
     MAP_GPIOIntEnable(GPIOA1_BASE, 0x10);
     MAP_UARTIntEnable(UARTA1_BASE, UART_INT_RX);
+    //UARTTxIntModeSet(UARTA1_BASE,  UART_TXINT_MODE_EOT);
     UARTFIFOEnable(UARTA1_BASE);
-    UARTFIFOLevelSet(UARTA1_BASE,UART_FIFO_TX1_8,  UART_FIFO_RX7_8);
+    UARTFIFOLevelSet(UARTA1_BASE,UART_FIFO_TX6_8,  UART_FIFO_RX6_8);
     //
     // Base address for first timer
     //
@@ -381,6 +382,9 @@ int main() {
                     Report("j: %d\r\n", j);
                     Report("tran_arr[%d]: %c\r\n",j, tran_arr[j]);
                     MAP_UARTCharPut(UARTA1_BASE, tran_arr[j]);
+                }
+                for (j = size - 1; j <= 10; j++){
+                    MAP_UARTCharPut(UARTA1_BASE, ' ');
                 }
                 drawRect(0, 0, 128, 16, BLACK);
                 fillRect(0, 0, 128, 16, BLACK);
