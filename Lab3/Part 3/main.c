@@ -293,8 +293,8 @@ int main() {
     //Enable Interrupts
     MAP_GPIOIntEnable(GPIOA1_BASE, 0x10);
     MAP_UARTIntEnable(UARTA1_BASE, UART_INT_RX);
-
-
+    UARTFIFOEnable(UARTA1_BASE);
+    UARTFIFOLevelSet(UARTA1_BASE,UART_FIFO_TX1_8,  UART_FIFO_RX7_8);
     //
     // Base address for first timer
     //
@@ -319,7 +319,7 @@ int main() {
     // Turn on the timers feeding values in mSec
     //
     Timer_IF_Start(g_ulBase, TIMER_A, 2000);
-    //Timer_IF_Start(g_ulRefBase, TIMER_A, 1000);
+    Timer_IF_Start(g_ulRefBase, TIMER_A, 1000);
 
     GPIOPinWrite(GPIOA2_BASE, 0x40, 0x40);
 
@@ -328,10 +328,16 @@ int main() {
     MAP_UARTIntEnable(UARTA1_BASE, UART_INT_RX);
     int rcvtxt = 0;
     long character;
-    int current = -1;
-    int previous = -1;
-    int tran_idx = 0;
-    char cr = 'a';
+    //int current = -1;
+    //int previous = -1;
+    //int tran_idx = 0;
+    //char cr = 'a';
+    int key_press = -1;
+    int old_key = -1;
+    int replace = 0;
+    int size = 0; //where we are on transmit array //same as size
+    char current = 0;
+    int dup = 0; //Number of times we have cycled through the digit
     //int i = 0;
     while (1) {
         while (Edge == 0 && msgrcv == 0) {;}
@@ -347,32 +353,131 @@ int main() {
             */
             //Report("  Score: %d", score);
             switch (score){
-            case 79370471: Message("0\r\n"); current = 0; break;
-            case 79396991: Message("1\r\n"); current = 1; break;
-            case 79380671: Message("2\r\n"); current = 2; break;
-            case 79413311: Message("3\r\n"); current = 3; break;
-            case 79405151: Message("4\r\n"); current = 4; break;
-            case 79388831: Message("5\r\n"); current = 5; break;
-            case 79421471: Message("6\r\n"); current = 6; break;
-            case 79401071: Message("7\r\n"); current = 7; break;
-            case 79384751: Message("8\r\n"); current = 8; break;
-            case 79417391: Message("9\r\n"); current = 9; break;
-            case 79373021: Message("MUTE\r\n"); current = 10; break;
-            case 79401581: Message("LAST\r\n"); current = 11; break;
-            default: Message("KEY NOT FOUND \r\n"); current = -1; break;
+            case 79370471: Message("0\r\n"); current = ' '; key_press = 0; break;
+            //case 79396991: Message("1\r\n"); current = ; break;
+            case 79380671: Message("2\r\n"); current = 'a'; key_press = 2; break;
+            case 79413311: Message("3\r\n"); current = 'd'; key_press = 3; break;
+            case 79405151: Message("4\r\n"); current = 'g'; key_press = 4; break;
+            case 79388831: Message("5\r\n"); current = 'j'; key_press = 5; break;
+            case 79421471: Message("6\r\n"); current = 'm'; key_press = 6; break;
+            case 79401071: Message("7\r\n"); current = 'p'; key_press = 7; break;
+            case 79384751: Message("8\r\n"); current = 't'; key_press = 8; break;
+            case 79417391: Message("9\r\n"); current = 'w'; key_press = 9; break;
+            case 79373021: Message("MUTE\r\n"); current = 0; key_press = 10; break; //ENTER
+            case 79401581: Message("LAST\r\n"); current = 0; key_press = 11; break; //DELETE
+            default: Message("KEY NOT FOUND \r\n"); current = -1; key_press = -1; break;
             }
-            if (current == 10){
+            if (key_press > -1) // valid key press
+            {
+                //Report("%c\r\n", current);
+                //
+            if (key_press == 10 && size){ //SEND
+                Report("size: %d\r\n", size);
+                //send message (index size)
+                //delete old message on screen
+                int j = 0;
+
+                for (j = 0; j < size; j++){
+                    Report("j: %d\r\n", j);
+                    Report("tran_arr[%d]: %c\r\n",j, tran_arr[j]);
+                    MAP_UARTCharPut(UARTA1_BASE, tran_arr[j]);
+                }
+                drawRect(0, 0, 128, 16, BLACK);
+                fillRect(0, 0, 128, 16, BLACK);
+                //set cursor back to starting position
+                size = 0;
+            }
+            else if (key_press == 0){ //SPACE
+                //add a space to the char array
+                //Probably just put a rectangle
+                //drawRect(10*size, 0, 10, 20, BLACK);
+                tran_arr[size++] = ' ';
+                drawChar(size*10, 0, ' ', GREEN, BLACK, 2);
+                //move index over one position
+            }
+            else if (key_press == 11 && size){ //BACKSPACE/DELETE
+                //If there are characters to delete
+                //delete element from char array
+                size--;
+                drawRect(10*size, 0, 128, 16, BLACK);
+                fillRect(10*size, 0, 128, 16, BLACK);
+                //drawRect(10*size, 0, 10, 20, BLACK);
+                //move index to the left
+            }
+            else if (g_ulRefTimerInts < 60000 && (key_press == old_key) && size){ //If duplicate
+                //need to change letter being displayed
+                //alter in display
+                //alter in character array
+                //no change in size
+
+                current = tran_arr[(size - 1)];
+                if (key_press == 7 || key_press == 9){ // 4 options
+                    if (dup == 3){ //wrap around
+                        current = current - 3;
+                        dup = 0;
+                    }
+                    else{
+                        current++;
+                        dup++;
+                    }
+                }
+                else{ // 3 options
+                    if (dup == 2){ //wrap around
+                        current = current - 2;
+                        dup = 0;
+                    }
+                    else{
+                        current++;
+                        dup++;
+                    }
+                }
+                //insert
+                drawChar((size-1)*10, 0, current, GREEN, BLACK, 2);
+                tran_arr[(size - 1)] = current;
+                replace = 1;
+            }
+            else if (key_press != 10 && key_press != 11){ //Regular operation
+                if (g_ulRefTimerInts >= 60000 && replace){
+                    //size++;
+                    drawChar((size)*10, 0, current, GREEN, BLACK, 2);
+                    replace = 0;
+
+                }
+                else{
+                    drawChar(size*10, 0, current, GREEN, BLACK, 2);
+                }
+                //add character to array
+                //add character to display
+                //Move cursor to next line
+                //We are using 16 characters
+                //So one line would be 128/16 = 8 pixels per character
+                //Could do two lines with 16 pixels, we will see
+                tran_arr[size++] = current;
+                old_key = key_press;
+                dup = 0;
+            }
+            //set key_press to previous so we can check if duplicate
+            //restart timer counter
+
+            /*if (current == 10){
                 Message("Send message\r\n");
                 cr = previous + 'a';
                 Report("%c\r\n", cr);
                 MAP_UARTCharPut(UARTA1_BASE, cr);
             }
-            previous = current;
+            */
+            g_ulRefTimerInts = 0;
+            //old_key = key_press;
+            //previous = current;
+            }
             Edge = 0;
             index = 0;
             score = 0;
+
         }
         if (msgrcv){
+            drawRect(0, 60, 128, 16, BLACK);
+            fillRect(0, 60, 128, 16, BLACK);
             int i;
             for (i = 0; i < msg_length; i++){
                 drawChar(i*10, 60, rcv_arr[i], GREEN, BLACK, 2);
