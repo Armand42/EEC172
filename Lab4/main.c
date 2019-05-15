@@ -51,7 +51,7 @@
 
 #include "pinmux.h"
 #define SPI_IF_BIT_RATE  100000
-#define TR_BUFF_SIZE     100
+#define TR_BUFF_SIZE     2
 
 #define APPLICATION_VERSION "1.1.1"
 #define BLACK           0x0000
@@ -62,6 +62,7 @@
 #define MAGENTA         0xF81F
 #define YELLOW          0xFFE0
 #define WHITE 0xFFFF
+#define M_PI 3.14159265358979323846
 //*****************************************************************************
 //                 GLOBAL VARIABLES -- Start
 //*****************************************************************************
@@ -92,9 +93,30 @@ static unsigned char ucTxBuffNdx;
 static unsigned char ucRxBuffNdx;
 
 //Lab 4 Stuff
-unsigned long samples[10];
+//unsigned char samples[10];
+//unsigned char
 unsigned long s1;
 unsigned long s2;
+volatile int count;
+
+//Algorithm Globals
+long int goertzel (int sample[], long int coeff, int N);
+char post_test (void);
+
+//-------Global variables--------//
+
+int N = 410;                 // block size
+volatile int samples[410];   // buffer to store N samples
+volatile int count;         // samples count
+volatile int flag;         // flag set when the samples buffer is full with N samples
+volatile int new_dig;      // flag set when inter-digit interval (pause) is detected
+
+int power_all[8];       // array to store calculated power of 8 frequencies
+
+int coeff[8];           // array to store the calculated coefficients
+int f_tone[8] = { 697, 770, 852, 941, 1209, 1336, 1477, 1633 }; // frequencies of rows & columns
+
+
 
 
 //*****************************************************************************
@@ -127,17 +149,33 @@ TimerBaseIntHandler(void)
     //
     // Clear the timer interrupt.
     //
-    Message("HERE\n");
+    //Message("HERE\n");
+    if (count < 410){
+    SPICSEnable(GSPI_BASE);
     GPIOPinWrite(GPIOA2_BASE, 0x40, 0x00);
     GPIOPinWrite(GPIOA1_BASE, 0x10, 0x00);
-
-    SPIDataGet(GSPI_BASE, samples);
+    //might need to move pointer
+    //SPIDataGet(GSPI_BASE, samples);
+    SPITransfer(GSPI_BASE, 0,  g_ucRxBuff, 1, SPI_CS_ENABLE);
     //SPIDataGet(GSPI_BASE, &s2);
-    Report("%d\r\n", samples[0]);
-    //Report("%d\r\n", s2);
+    SPITransfer(GSPI_BASE, 0, (g_ucRxBuff + 1), 1, SPI_CS_ENABLE);
+    //Report("%d  ", g_ucRxBuff[0]);
+    //Report("%d\r\n",  g_ucRxBuff[1]);
+    SPICSDisable(GSPI_BASE);
     GPIOPinWrite(GPIOA1_BASE, 0x10, 0x10);
     GPIOPinWrite(GPIOA2_BASE, 0x40, 0x40);
     Timer_IF_InterruptClear(g_ulBase);
+    samples[count++] =  ((((int)( g_ucRxBuff[0] << 3)) << 2)  |  ((int)(g_ucRxBuff[1] >> 3)) >> 2);
+    Report("%d\r\n", samples[count - 1]);
+    //count++;
+    }
+    else if (count == 410){
+        //Message("Full Samples");
+        //count = 0;
+        flag = 1;
+        Timer_IF_Stop(g_ulBase, TIMER_A);
+    }
+
     g_ulTimerInts ++;
 }
 
@@ -251,6 +289,105 @@ BoardInit(void) {
 //! \return None.
 //
 //****************************************************************************
+
+long int
+goertzel (int sample[], long int coeff, int N)
+//---------------------------------------------------------------//
+{
+//initialize variables to be used in the function
+  int Q, Q_prev, Q_prev2, i;
+  long prod1, prod2, prod3, power;
+
+  Q_prev = 0;           //set delay element1 Q_prev as zero
+  Q_prev2 = 0;          //set delay element2 Q_prev2 as zero
+  power = 0;            //set power as zero
+
+  for (i = 0; i < N; i++)   // loop N times and calculate Q, Q_prev, Q_prev2 at each iteration
+    {
+      Q = (sample[i]) + ((coeff * Q_prev) >> 14) - (Q_prev2);   // >>14 used as the coeff was used in Q15 format
+      Q_prev2 = Q_prev;     // shuffle delay elements
+      Q_prev = Q;
+    }
+
+  //calculate the three products used to calculate power
+  prod1 = ((long) Q_prev * Q_prev);
+  prod2 = ((long) Q_prev2 * Q_prev2);
+  prod3 = ((long) Q_prev * coeff) >> 14;
+  prod3 = (prod3 * Q_prev2);
+
+  power = ((prod1 + prod2 - prod3)) >> 8;   //calculate power using the three products and scale the result down
+
+  return power;
+}
+
+char
+post_test (void)
+//---------------------------------------------------------------//
+{
+//initialize variables to be used in the function
+  int i, row, col, max_power;
+
+  char row_col[4][4] =      // array with the order of the digits in the DTMF system
+  {
+    {'1', '2', '3', 'A'},
+    {'4', '5', '6', 'B'},
+    {'7', '8', '9', 'C'},
+    {'*', '0', '#', 'D'}
+  };
+
+// find the maximum power in the row frequencies and the row number
+
+  max_power = 0;                //initialize max_power=0
+
+  for (i = 0; i < 4; i++)       //loop 4 times from 0>3 (the indecies of the rows)
+    {
+      if (power_all[i] > max_power) //if power of the current row frequency > max_power
+    {
+      max_power = power_all[i]; //set max_power as the current row frequency
+      row = i;      //update row number
+    }
+    }
+
+
+// find the maximum power in the column frequencies and the column number
+
+  max_power = 0;        //initialize max_power=0
+
+  for (i = 4; i < 8; i++)   //loop 4 times from 4>7 (the indecies of the columns)
+    {
+      if (power_all[i] > max_power) //if power of the current column frequency > max_power
+    {
+      max_power = power_all[i]; //set max_power as the current column frequency
+      col = i;      //update column number
+    }
+    }
+
+
+  if (power_all[col] == 0 && power_all[row] == 0)   //if the maximum powers equal zero > this means no signal or inter-digit pause
+    new_dig = 1;        //set new_dig to 1 to display the next decoded digit
+
+
+  if ((power_all[col] > 1000 && power_all[row] > 1000))   // check if maximum powers of row & column exceed certain threshold AND new_dig flag is set to 1
+    {
+      //if (new_dig == 1)
+      //write_lcd (1, row_col[row][col - 4]); // display the digit on the LCD
+      //dis_7seg (8, row_col[row][col - 4]);  // display the digit on 7-seg
+      return row_col[row][col - 4];
+      //new_dig = 0;      // set new_dig to 0 to avoid displaying the same digit again.
+    }
+  else
+      return -1;
+}
+
+
+
+
+
+
+
+
+
+
 int main() {
     unsigned long ulStatus;
 
@@ -298,6 +435,7 @@ int main() {
     SW3_intcount=0;
     SW2_intflag=0;
     SW3_intflag=0;
+    count = 0;
     Edge = 0; //flag of IR_int_handler
     index = 0; //index of IR buffer
     score = 0; //32-bit interger value of buffer
@@ -342,6 +480,7 @@ int main() {
     
 	Adafruit_Init();
     fillScreen(RED);
+    fillScreen(BLUE);
     MAP_UARTIntEnable(UARTA1_BASE, UART_INT_RX);
     int rcvtxt = 0;
     long character;
@@ -351,10 +490,41 @@ int main() {
     int size = 0; //where we are on transmit array //same as size
     char current = 0; //which initial character was pressed (key_press)
     int dup = 0; //Number of times we have cycled through the digit
-    //int i = 0;
+    int i = 0;
+
+
+    //Calculate coefficients for 8 frequencies
+    for (i = 0; i < 8; i++)
+       {
+         coeff[i] = (2 * cos (2 * M_PI * (f_tone[i] / 9615.0))) * (1 << 14);
+   }
+
     while (1) {
-        while (Edge == 0 && msgrcv == 0) {;}
+        while (Edge == 0 && msgrcv == 0 && flag == 0) {;}
         //Report("Timer: %d\r\n", g_ulRefTimerInts);
+        if (flag){
+            Message("CALCULATE POWER FOR ALL 8 FREQUENCIES\r\n");
+            for (i = 0; i < 8; i++)
+              power_all[i] = goertzel (samples, coeff[i], N);   // call goertzel to calculate the power at each frequency and store it in the power_all array
+
+        char status = post_test ();
+        if (status > -1)
+            Report("%c\r\n");
+        else{
+            flag = 0;
+            count = 0;
+            Timer_IF_Start(g_ulBase, TIMER_A, 5000);
+            Report("Nope\r\n");
+        }
+
+
+
+
+
+
+
+
+        }
         if (Edge){
 
             switch (score){ //score is the 32 bit value for decoder
