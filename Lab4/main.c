@@ -28,7 +28,7 @@
 #include "hw_memmap.h"
 #include "hw_common_reg.h"
 #include "interrupt.h"
-#include "inc/hw_apps_rcm.h"
+#include "hw_apps_rcm.h"
 #include "prcm.h"
 #include "rom.h"
 #include "rom_map.h"
@@ -206,6 +206,7 @@ static void  RecieverIntHandler(void){
     msgrcv = 1;
     msg_length = 0;
     long character;
+    if (UARTCharsAvail(UARTA1_BASE)){
     while(UARTCharsAvail(UARTA1_BASE)){ //look for available characters in UART1
         character = UARTCharGet(UARTA1_BASE);
         rcv_arr[msg_length++] = (char) character; //add current character to buffer
@@ -213,7 +214,8 @@ static void  RecieverIntHandler(void){
     }
     int i = 0;
     for (i = 0; i < msg_length; i++){
-
+        printf("%c", rcv_arr[i]);
+    }
     }
     ulStatus = MAP_UARTIntStatus (UARTA1_BASE, true);
     MAP_UARTIntClear(UARTA1_BASE, ulStatus);
@@ -329,7 +331,7 @@ post_test (void)
     new_dig = 1;        //set new_dig to 1 to display the next decoded digit
 
 
-  if ((power_all[col] > 150000 && power_all[row] > 150000))   // check if maximum powers of row & column exceed certain threshold AND new_dig flag is set to 1
+  if ((power_all[col] > 200000 && power_all[row] > 200000))   // check if maximum powers of row & column exceed certain threshold AND new_dig flag is set to 1
     {
       //if (new_dig == 1)
       //write_lcd (1, row_col[row][col - 4]); // display the digit on the LCD
@@ -371,7 +373,7 @@ int main() {
 
     ClearTerm();
     //MAP_GPIOIntRegister(GPIOA1_BASE, BothEdgeIntHandler);
-    MAP_GPIOIntTypeSet(GPIOA1_BASE, 0x10, GPIO_BOTH_EDGES);    // IR GPIO
+    //MAP_GPIOIntTypeSet(GPIOA1_BASE, 0x10, GPIO_BOTH_EDGES);    // IR GPIO
     MAP_UARTIntRegister(UARTA1_BASE, RecieverIntHandler); //UARTA1 RX int handler
     ulStatus = MAP_UARTIntStatus (UARTA1_BASE, false);
     MAP_UARTIntClear(UARTA1_BASE, ulStatus); //clear ints on UARTA1
@@ -410,7 +412,7 @@ int main() {
     msg_length = 0; //length of recieving printf
 
    //Enable Interrupts
-    MAP_GPIOIntEnable(GPIOA1_BASE, 0x10);
+    //MAP_GPIOIntEnable(GPIOA1_BASE, 0x10);
     MAP_UARTIntEnable(UARTA1_BASE, UART_INT_RX); //set interrupt for RX
 
     UARTFIFOEnable(UARTA1_BASE);
@@ -473,7 +475,7 @@ int main() {
               //printf("%d  ", power_all[i]);
             }
         char status = post_test ();
-        /*
+/*
         if (status != 'Q'){
             printf("%c\r\n", status);
         }
