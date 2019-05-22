@@ -209,10 +209,11 @@ static void  RecieverIntHandler(void){
     while(UARTCharsAvail(UARTA1_BASE)){ //look for available characters in UART1
         character = UARTCharGet(UARTA1_BASE);
         rcv_arr[msg_length++] = (char) character; //add current character to buffer
+        printf("%c", rcv_arr[msg_length - 1]);
     }
     int i = 0;
     for (i = 0; i < msg_length; i++){
-        printf("%c", rcv_arr[i]);
+
     }
     ulStatus = MAP_UARTIntStatus (UARTA1_BASE, true);
     MAP_UARTIntClear(UARTA1_BASE, ulStatus);
@@ -328,7 +329,7 @@ post_test (void)
     new_dig = 1;        //set new_dig to 1 to display the next decoded digit
 
 
-  if ((power_all[col] > 200000 && power_all[row] > 200000))   // check if maximum powers of row & column exceed certain threshold AND new_dig flag is set to 1
+  if ((power_all[col] > 150000 && power_all[row] > 150000))   // check if maximum powers of row & column exceed certain threshold AND new_dig flag is set to 1
     {
       //if (new_dig == 1)
       //write_lcd (1, row_col[row][col - 4]); // display the digit on the LCD
@@ -441,8 +442,7 @@ int main() {
     //Timer_IF_Start(g_ulRefBase, TIMER_A, 1000);
     MAP_TimerLoadSet(g_ulBase, TIMER_A, 5000);
     //MAP_TimerEnable(g_ulBase, TIMER_A);
-    MAP_TimerLoadSet(g_ulRefBase, TIMER_A, 1000);
-    MAP_TimerEnable(g_ulRefBase, TIMER_A);
+
         //
         // Enable the GPT
         //
@@ -463,12 +463,14 @@ int main() {
     int dup = 0; //Number of times we have cycled through the digit
     int i = 0;
     MAP_TimerEnable(g_ulBase, TIMER_A);
+    MAP_TimerLoadSet(g_ulRefBase, TIMER_A, 1000);
+    MAP_TimerEnable(g_ulRefBase, TIMER_A);
     while (1) {
         while (msgrcv == 0 && flag == 0) {;}
         if (flag){
             for (i = 0; i < 8; i++){
               power_all[i] = goertzel (samples, coeff[i], N);   // call goertzel to calculate the power at each frequency and store it in the power_all array
-              printf("%d  ", power_all[i]);
+              //printf("%d  ", power_all[i]);
             }
         char status = post_test ();
         /*
@@ -491,7 +493,9 @@ int main() {
             case '9': printf("9\r\n"); current = 'w'; key_press = 9; break;
             case '*': printf("* (ENTER)\r\n"); current = 0; key_press = 10; break; //ENTER
             case '#': printf("# (DELETE)\r\n"); current = 0; key_press = 11; break; //DELETE
-            default: printf("KEY NOT FOUND \r\n"); current = -1; key_press = -1; break;
+            default: current = -1; key_press = -1; break;
+
+            // printf("KEY NOT FOUND \r\n");
             }
             if (key_press > -1) // valid key press
             {
@@ -503,8 +507,8 @@ int main() {
                 int j = 0;
 
                 for (j = 0; j < size; j++){
-                    printf("j: %d\r\n", j);
-                    printf("tran_arr[%d]: %c\r\n",j, tran_arr[j]);
+                    //printf("j: %d\r\n", j);
+                    //printf("tran_arr[%d]: %c\r\n",j, tran_arr[j]);
                     MAP_UARTCharPut(UARTA1_BASE, tran_arr[j]);
                 }
                 for (j = size - 1; j <= 10; j++){
@@ -520,7 +524,10 @@ int main() {
                 //Probably just put a rectangle
                 //drawRect(10*size, 0, 10, 20, BLACK);
                 tran_arr[size++] = ' ';
-                drawChar(size*10, 0, ' ', GREEN, BLACK, 2);
+                if (replace)
+                drawChar((size-1)*10, 0, ' ', GREEN, BLACK, 2);
+                else
+                    drawChar(size*10, 0, ' ', GREEN, BLACK, 2);
                 //move index over one position
             }
             else if (key_press == 11 && size){ //BACKSPACE/DELETE
@@ -587,7 +594,7 @@ int main() {
             g_ulRefTimerInts = 0;
             }
             //One key press read multiple times
-            MAP_UtilsDelay(1000000);
+            MAP_UtilsDelay(2000000);
             flag = 0;
             count = 0;
            //Timer_IF_Start(g_ulBase, TIMER_A, 1);
