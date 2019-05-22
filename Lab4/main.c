@@ -115,7 +115,7 @@ int power_all[8];       // array to store calculated power of 8 frequencies
 
 //int coeff[8];           // array to store the calculated coefficients
 int f_tone[8] = { 697, 770, 852, 941, 1209, 1336, 1477, 1633 }; // frequencies of rows & columns
-int coeff[8] = { 31479,  31205, 30867, 30464, 29028,  28234,  27270,  26107};
+int coeff[8] = { 31548,  31281, 30951, 30556, 29144,  28361,  27409,  26258};
 
 
 
@@ -328,7 +328,7 @@ post_test (void)
     new_dig = 1;        //set new_dig to 1 to display the next decoded digit
 
 
-  if ((power_all[col] > 100000 && power_all[row] > 100000))   // check if maximum powers of row & column exceed certain threshold AND new_dig flag is set to 1
+  if ((power_all[col] > 200000 && power_all[row] > 200000))   // check if maximum powers of row & column exceed certain threshold AND new_dig flag is set to 1
     {
       //if (new_dig == 1)
       //write_lcd (1, row_col[row][col - 4]); // display the digit on the LCD
@@ -371,7 +371,7 @@ int main() {
     ClearTerm();
     //MAP_GPIOIntRegister(GPIOA1_BASE, BothEdgeIntHandler);
     MAP_GPIOIntTypeSet(GPIOA1_BASE, 0x10, GPIO_BOTH_EDGES);    // IR GPIO
-    //MAP_UARTIntRegister(UARTA1_BASE, RecieverIntHandler); //UARTA1 RX int handler
+    MAP_UARTIntRegister(UARTA1_BASE, RecieverIntHandler); //UARTA1 RX int handler
     ulStatus = MAP_UARTIntStatus (UARTA1_BASE, false);
     MAP_UARTIntClear(UARTA1_BASE, ulStatus); //clear ints on UARTA1
     ulStatus = MAP_GPIOIntStatus (GPIOA1_BASE, false);
@@ -439,8 +439,6 @@ int main() {
     //
     //Timer_IF_Start(g_ulBase, TIMER_A, 5000); //Sample Rate of 16 kHz
     //Timer_IF_Start(g_ulRefBase, TIMER_A, 1000);
-    //Timer_IF_Start(g_ulBase, TIMER_A, 1);
-    //MAP_TimerLoadSet(ulBase,ulTimer,MILLISECONDS_TO_TICKS(ulValue));
     MAP_TimerLoadSet(g_ulBase, TIMER_A, 5000);
     //MAP_TimerEnable(g_ulBase, TIMER_A);
     MAP_TimerLoadSet(g_ulBase, TIMER_B, 1000);
@@ -464,14 +462,13 @@ int main() {
     char current = 0; //which initial character was pressed (key_press)
     int dup = 0; //Number of times we have cycled through the digit
     int i = 0;
-
     MAP_TimerEnable(g_ulBase, TIMER_A);
     while (1) {
         while (msgrcv == 0 && flag == 0) {;}
         if (flag){
             for (i = 0; i < 8; i++){
               power_all[i] = goertzel (samples, coeff[i], N);   // call goertzel to calculate the power at each frequency and store it in the power_all array
-              //printf("%d  ", power_all[i]);
+              printf("%d  ", power_all[i]);
             }
         char status = post_test ();
         /*
@@ -590,7 +587,7 @@ int main() {
             g_ulRefTimerInts = 0;
             }
             //One key press read multiple times
-            //MAP_UtilsDelay(100000);
+            MAP_UtilsDelay(2000000);
             flag = 0;
             count = 0;
            //Timer_IF_Start(g_ulBase, TIMER_A, 1);
