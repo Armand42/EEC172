@@ -1,4 +1,4 @@
-//EEC 172 LAB 3
+//EEC 172 LAB 4
 //Griffin Kimura
 //Armand Nasseri
 
@@ -426,13 +426,13 @@ int main() {
     // Configuring the timers
     //
     Timer_IF_Init(PRCM_TIMERA0, g_ulBase, TIMER_CFG_PERIODIC, TIMER_A, 0);
-    Timer_IF_Init(PRCM_TIMERA1, g_ulRefBase, TIMER_CFG_PERIODIC, TIMER_B, 0);
+    Timer_IF_Init(PRCM_TIMERA1, g_ulRefBase, TIMER_CFG_PERIODIC, TIMER_A, 0);
 
     //
     // Setup the interrupts for the timer timeouts.
     //
     Timer_IF_IntSetup(g_ulBase, TIMER_A, TimerBaseIntHandler);
-    Timer_IF_IntSetup(g_ulRefBase, TIMER_B, TimerRefIntHandler);
+    Timer_IF_IntSetup(g_ulRefBase, TIMER_A, TimerRefIntHandler);
 
     //
     // Turn on the timers feeding values in mSec
@@ -441,8 +441,8 @@ int main() {
     //Timer_IF_Start(g_ulRefBase, TIMER_A, 1000);
     MAP_TimerLoadSet(g_ulBase, TIMER_A, 5000);
     //MAP_TimerEnable(g_ulBase, TIMER_A);
-    MAP_TimerLoadSet(g_ulBase, TIMER_B, 1000);
-    MAP_TimerEnable(g_ulBase, TIMER_B);
+    MAP_TimerLoadSet(g_ulRefBase, TIMER_A, 1000);
+    MAP_TimerEnable(g_ulRefBase, TIMER_A);
         //
         // Enable the GPT
         //
@@ -587,7 +587,7 @@ int main() {
             g_ulRefTimerInts = 0;
             }
             //One key press read multiple times
-            MAP_UtilsDelay(2000000);
+            MAP_UtilsDelay(1000000);
             flag = 0;
             count = 0;
            //Timer_IF_Start(g_ulBase, TIMER_A, 1);
