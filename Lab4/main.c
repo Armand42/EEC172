@@ -28,7 +28,7 @@
 #include "hw_memmap.h"
 #include "hw_common_reg.h"
 #include "interrupt.h"
-#include "hw_apps_rcm.h"
+#include "inc/hw_apps_rcm.h"
 #include "prcm.h"
 #include "rom.h"
 #include "rom_map.h"
@@ -82,12 +82,12 @@ unsigned long g_ulTimerInts; //increment counter for IR reciever pulse width
 volatile int buf[32]; //stores 32 bit decoder of IR
 volatile int index; //index of the buffer
 volatile int score; //32 bit int value of decoder (buf)
-volatile int msgrcv; //flag for if we have recieved a message
+volatile int msgrcv; //flag for if we have recieved a printf
 volatile char rcv_arr[16]; //store characters from UART1 RX
 volatile char tran_arr[16]; //store characters to send to UART1 TX
 volatile int rcv_idx; //index for rcv_arr
-volatile int msg_length; //length of the sending message
-static unsigned char g_ucTxBuff[TR_BUFF_SIZE];
+volatile int msg_length; //length of the sending printf
+//static unsigned char g_ucTxBuff[TR_BUFF_SIZE];
 static unsigned char g_ucRxBuff[TR_BUFF_SIZE];
 static unsigned char ucTxBuffNdx;
 static unsigned char ucRxBuffNdx;
@@ -100,7 +100,7 @@ unsigned long s2;
 volatile int count;
 
 //Algorithm Globals
-long int goertzel (int sample[], long int coeff, int N);
+long int goertzel (volatile int sample[], long int coeff, int N);
 char post_test (void);
 
 //-------Global variables--------//
@@ -113,9 +113,9 @@ volatile int new_dig;      // flag set when inter-digit interval (pause) is dete
 
 int power_all[8];       // array to store calculated power of 8 frequencies
 
-int coeff[8];           // array to store the calculated coefficients
+//int coeff[8];           // array to store the calculated coefficients
 int f_tone[8] = { 697, 770, 852, 941, 1209, 1336, 1477, 1633 }; // frequencies of rows & columns
-
+int coeff[8] = { 31479,  31205, 30867, 30464, 29028,  28234,  27270,  26107};
 
 
 
@@ -149,30 +149,31 @@ TimerBaseIntHandler(void)
     //
     // Clear the timer interrupt.
     //
-    //Message("HERE\n");
+    //printf("HERE\n");
+    //printf("HERE\n");
     if (count < 410){
     SPICSEnable(GSPI_BASE);
-    GPIOPinWrite(GPIOA2_BASE, 0x40, 0x00);
+    //GPIOPinWrite(GPIOA2_BASE, 0x40, 0x00);
     GPIOPinWrite(GPIOA1_BASE, 0x10, 0x00);
     //might need to move pointer
     //SPIDataGet(GSPI_BASE, samples);
     SPITransfer(GSPI_BASE, 0,  g_ucRxBuff, 1, SPI_CS_ENABLE);
     //SPIDataGet(GSPI_BASE, &s2);
-    SPITransfer(GSPI_BASE, 0, (g_ucRxBuff + 1), 1, SPI_CS_ENABLE);
-    //Report("%d  ", g_ucRxBuff[0]);
-    //Report("%d\r\n",  g_ucRxBuff[1]);
+    SPITransfer(GSPI_BASE, 0, &(g_ucRxBuff[1]), 1, SPI_CS_ENABLE);
+    //printf("%d  ", g_ucRxBuff[0]);
+    //printf("%d\r\n",  g_ucRxBuff[1]);
     SPICSDisable(GSPI_BASE);
     GPIOPinWrite(GPIOA1_BASE, 0x10, 0x10);
-    GPIOPinWrite(GPIOA2_BASE, 0x40, 0x40);
+    //GPIOPinWrite(GPIOA2_BASE, 0x40, 0x40);
     Timer_IF_InterruptClear(g_ulBase);
-    samples[count++] =  ((((int)( g_ucRxBuff[0] << 3)) << 2)  |  ((int)(g_ucRxBuff[1] >> 3)) >> 2);
-    Report("%d\r\n", samples[count - 1]);
-    //count++;
+    //samples[count++] =  ((0x000003E0 & (((int) g_ucRxBuff[0]) << 5))  |  (0x0000001F & (((int)g_ucRxBuff[1]) >> 3)));
+    samples[count++] = (((int)(g_ucRxBuff[0] & 0x1F) << 5) | (((int) g_ucRxBuff[1]) >> 3)) - 430 ;
     }
     else if (count == 410){
-        //Message("Full Samples");
+        //printf("Full Samples");
         //count = 0;
         flag = 1;
+        Timer_IF_InterruptClear(g_ulBase);
         Timer_IF_Stop(g_ulBase, TIMER_A);
     }
 
@@ -200,7 +201,7 @@ TimerRefIntHandler(void)
 
 //UARTA1_RX interrupt
 static void  RecieverIntHandler(void){
-    Message("RECIEVING MESSAGE\r\n");
+    printf("RECIEVING printf\r\n");
     unsigned long ulStatus;
     msgrcv = 1;
     msg_length = 0;
@@ -211,53 +212,13 @@ static void  RecieverIntHandler(void){
     }
     int i = 0;
     for (i = 0; i < msg_length; i++){
-        Report("%c", rcv_arr[i]);
+        printf("%c", rcv_arr[i]);
     }
     ulStatus = MAP_UARTIntStatus (UARTA1_BASE, true);
     MAP_UARTIntClear(UARTA1_BASE, ulStatus);
 }
 
 
-
-//IR Reciever interrupt
-static void BothEdgeIntHandler(void) { // SW3 handler
-    //Message("here\n");
-    unsigned long ulStatus;
-    int value = MAP_GPIOPinRead(GPIOA1_BASE, 0x10);
-	//Rising Edge
-    if (value > 0){
-        g_ulTimerInts = 0; //Restart timer counter
-        Timer_IF_Start(g_ulBase, TIMER_A, 2000); //Start counting for pulse width
-    }
-    //Falling Edge
-    else{
-        if (index < 32){ //store 32 values 
-            if (g_ulTimerInts <= 43 && g_ulTimerInts >= 15){ //Small pulse width (0)
-                buf[index] = 0;
-                index++;
-                score = (score << 1) | (0);
-            }
-            else if (g_ulTimerInts >= 44 && g_ulTimerInts < 70){ //Large pulse width (1)
-                buf[index] = 1;
-                index++;
-                score = (score << 1) | (1);
-            }
-            if (index == 32){
-                Edge = 1; //flag that we have a 32 bit decoded score
-            }
-        }
-        else{
-            Timer_IF_Stop(g_ulBase, TIMER_A); //stop timer until we are ready
-        }
-        if (g_ulTimerInts >= 70){ //largest pulse width indicating start of bit pattern
-            index = 0;
-            score = 0;
-        }
-    }
-    //Edge = 1;
-    ulStatus = MAP_GPIOIntStatus (GPIOA1_BASE, true);
-    MAP_GPIOIntClear(GPIOA1_BASE, ulStatus);
-}
 
 //*****************************************************************************
 //
@@ -291,7 +252,7 @@ BoardInit(void) {
 //****************************************************************************
 
 long int
-goertzel (int sample[], long int coeff, int N)
+goertzel (volatile int sample[], long int coeff, int N)
 //---------------------------------------------------------------//
 {
 //initialize variables to be used in the function
@@ -367,7 +328,7 @@ post_test (void)
     new_dig = 1;        //set new_dig to 1 to display the next decoded digit
 
 
-  if ((power_all[col] > 1000 && power_all[row] > 1000))   // check if maximum powers of row & column exceed certain threshold AND new_dig flag is set to 1
+  if ((power_all[col] > 100000 && power_all[row] > 100000))   // check if maximum powers of row & column exceed certain threshold AND new_dig flag is set to 1
     {
       //if (new_dig == 1)
       //write_lcd (1, row_col[row][col - 4]); // display the digit on the LCD
@@ -376,7 +337,7 @@ post_test (void)
       //new_dig = 0;      // set new_dig to 0 to avoid displaying the same digit again.
     }
   else
-      return -1;
+      return 'Q';
 }
 
 
@@ -399,7 +360,7 @@ int main() {
 #define SYSCLK          80000000
 #define CONSOLE         UARTA0_BASE
 #define CONSOLE_PERIPH  PRCM_UARTA0
-//*/
+*/
     InitTerm();
     MAP_UARTConfigSetExpClk(UARTA1_BASE,MAP_PRCMPeripheralClockGet(PRCM_UARTA1),
                      115200, (UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
@@ -410,19 +371,19 @@ int main() {
     ClearTerm();
     //MAP_GPIOIntRegister(GPIOA1_BASE, BothEdgeIntHandler);
     MAP_GPIOIntTypeSet(GPIOA1_BASE, 0x10, GPIO_BOTH_EDGES);    // IR GPIO
-    //MAP_UARTIntRegister(UARTA1_BASE, RecieverIntHandler);	//UARTA1 RX int handler
+    //MAP_UARTIntRegister(UARTA1_BASE, RecieverIntHandler); //UARTA1 RX int handler
     ulStatus = MAP_UARTIntStatus (UARTA1_BASE, false);
     MAP_UARTIntClear(UARTA1_BASE, ulStatus); //clear ints on UARTA1
     ulStatus = MAP_GPIOIntStatus (GPIOA1_BASE, false);
     MAP_GPIOIntClear(GPIOA1_BASE, ulStatus); // clear interrupts on GPIOA1
 
-	//Enable SPI port for OLED
+    //Enable SPI port for OLED
     MAP_PRCMPeripheralClkEnable(PRCM_GSPI,PRCM_RUN_MODE_CLK);
     MAP_PRCMPeripheralReset(PRCM_GSPI);
     MAP_SPIReset(GSPI_BASE);
-    //SPI_IF_BIT_RATE
+    //SPI_IF_BIT_RATE = 400000
     MAP_SPIConfigSetExpClk(GSPI_BASE,MAP_PRCMPeripheralClockGet(PRCM_GSPI),
-                         SPI_IF_BIT_RATE,SPI_MODE_MASTER,SPI_SUB_MODE_0,
+                         400000,SPI_MODE_MASTER,SPI_SUB_MODE_0,
                          (SPI_SW_CTRL_CS |
                          SPI_4PIN_MODE |
                          SPI_TURBO_OFF |
@@ -430,6 +391,10 @@ int main() {
                          SPI_WL_8));
 
     MAP_SPIEnable(GSPI_BASE);
+
+
+    Adafruit_Init();
+    fillScreen(RED);
     // clear global variables
     SW2_intcount=0;
     SW3_intcount=0;
@@ -441,8 +406,8 @@ int main() {
     score = 0; //32-bit interger value of buffer
     msgrcv = 0; //if we have recieved a msg
     rcv_idx = 0; //char index for the recieving character buffer
-    msg_length = 0; //length of recieving message
-   
+    msg_length = 0; //length of recieving printf
+
    //Enable Interrupts
     MAP_GPIOIntEnable(GPIOA1_BASE, 0x10);
     MAP_UARTIntEnable(UARTA1_BASE, UART_INT_RX); //set interrupt for RX
@@ -461,26 +426,34 @@ int main() {
     // Configuring the timers
     //
     Timer_IF_Init(PRCM_TIMERA0, g_ulBase, TIMER_CFG_PERIODIC, TIMER_A, 0);
-    Timer_IF_Init(PRCM_TIMERA1, g_ulRefBase, TIMER_CFG_PERIODIC, TIMER_A, 0);
+    Timer_IF_Init(PRCM_TIMERA1, g_ulRefBase, TIMER_CFG_PERIODIC, TIMER_B, 0);
 
     //
     // Setup the interrupts for the timer timeouts.
     //
     Timer_IF_IntSetup(g_ulBase, TIMER_A, TimerBaseIntHandler);
-    //Timer_IF_IntSetup(g_ulRefBase, TIMER_A, TimerRefIntHandler);
+    Timer_IF_IntSetup(g_ulRefBase, TIMER_B, TimerRefIntHandler);
 
     //
     // Turn on the timers feeding values in mSec
     //
-    Timer_IF_Start(g_ulBase, TIMER_A, 5000); //Sample Rate of 16 kHz
+    //Timer_IF_Start(g_ulBase, TIMER_A, 5000); //Sample Rate of 16 kHz
     //Timer_IF_Start(g_ulRefBase, TIMER_A, 1000);
+    //Timer_IF_Start(g_ulBase, TIMER_A, 1);
+    //MAP_TimerLoadSet(ulBase,ulTimer,MILLISECONDS_TO_TICKS(ulValue));
+    MAP_TimerLoadSet(g_ulBase, TIMER_A, 5000);
+    //MAP_TimerEnable(g_ulBase, TIMER_A);
+    MAP_TimerLoadSet(g_ulBase, TIMER_B, 1000);
+    MAP_TimerEnable(g_ulBase, TIMER_B);
+        //
+        // Enable the GPT
+        //
+    //MAP_TimerEnable(ulBase,ulTimer);
+    //GPIOPinWrite(GPIOA2_BASE, 0x40, 0x40); // CS for OLED
+    //GPIOPinWrite(GPIOA1_BASE, 0x10, 0x10); // Complement of CS for ADC
 
-    GPIOPinWrite(GPIOA2_BASE, 0x40, 0x40); // CS for OLED
-    GPIOPinWrite(GPIOA1_BASE, 0x10, 0x10); // Complement of CS for ADC
-    
-	Adafruit_Init();
-    fillScreen(RED);
-    fillScreen(BLUE);
+
+    //fillScreen(BLUE);
     MAP_UARTIntEnable(UARTA1_BASE, UART_INT_RX);
     int rcvtxt = 0;
     long character;
@@ -492,68 +465,49 @@ int main() {
     int dup = 0; //Number of times we have cycled through the digit
     int i = 0;
 
-
-    //Calculate coefficients for 8 frequencies
-    for (i = 0; i < 8; i++)
-       {
-         coeff[i] = (2 * cos (2 * M_PI * (f_tone[i] / 9615.0))) * (1 << 14);
-   }
-
+    MAP_TimerEnable(g_ulBase, TIMER_A);
     while (1) {
-        while (Edge == 0 && msgrcv == 0 && flag == 0) {;}
-        //Report("Timer: %d\r\n", g_ulRefTimerInts);
+        while (msgrcv == 0 && flag == 0) {;}
         if (flag){
-            Message("CALCULATE POWER FOR ALL 8 FREQUENCIES\r\n");
-            for (i = 0; i < 8; i++)
+            for (i = 0; i < 8; i++){
               power_all[i] = goertzel (samples, coeff[i], N);   // call goertzel to calculate the power at each frequency and store it in the power_all array
-
+              //printf("%d  ", power_all[i]);
+            }
         char status = post_test ();
-        if (status > -1)
-            Report("%c\r\n");
+        /*
+        if (status != 'Q'){
+            printf("%c\r\n", status);
+        }
         else{
-            flag = 0;
-            count = 0;
-            Timer_IF_Start(g_ulBase, TIMER_A, 5000);
-            Report("Nope\r\n");
-        }
-
-
-
-
-
-
-
-
-        }
-        if (Edge){
-
-            switch (score){ //score is the 32 bit value for decoder
-            case 79370471: Message("0\r\n"); current = ' '; key_press = 0; break;
-            //case 79396991: Message("1\r\n"); current = ; break;
-            case 79380671: Message("2\r\n"); current = 'a'; key_press = 2; break;
-            case 79413311: Message("3\r\n"); current = 'd'; key_press = 3; break;
-            case 79405151: Message("4\r\n"); current = 'g'; key_press = 4; break;
-            case 79388831: Message("5\r\n"); current = 'j'; key_press = 5; break;
-            case 79421471: Message("6\r\n"); current = 'm'; key_press = 6; break;
-            case 79401071: Message("7\r\n"); current = 'p'; key_press = 7; break;
-            case 79384751: Message("8\r\n"); current = 't'; key_press = 8; break;
-            case 79417391: Message("9\r\n"); current = 'w'; key_press = 9; break;
-            case 79373021: Message("MUTE\r\n"); current = 0; key_press = 10; break; //ENTER
-            case 79401581: Message("LAST\r\n"); current = 0; key_press = 11; break; //DELETE
-            default: Message("KEY NOT FOUND \r\n"); current = -1; key_press = -1; break;
+            printf("Nope\r\n");
+        }*/
+        switch (status){ //score is the 32 bit value for decoder
+            case '0': printf("0\r\n"); current = ' '; key_press = 0; break;
+            //case 79396991: printf("1\r\n"); current = ; break;
+            case '2': printf("2\r\n"); current = 'a'; key_press = 2; break;
+            case '3': printf("3\r\n"); current = 'd'; key_press = 3; break;
+            case '4': printf("4\r\n"); current = 'g'; key_press = 4; break;
+            case '5': printf("5\r\n"); current = 'j'; key_press = 5; break;
+            case '6': printf("6\r\n"); current = 'm'; key_press = 6; break;
+            case '7': printf("7\r\n"); current = 'p'; key_press = 7; break;
+            case '8': printf("8\r\n"); current = 't'; key_press = 8; break;
+            case '9': printf("9\r\n"); current = 'w'; key_press = 9; break;
+            case '*': printf("* (ENTER)\r\n"); current = 0; key_press = 10; break; //ENTER
+            case '#': printf("# (DELETE)\r\n"); current = 0; key_press = 11; break; //DELETE
+            default: printf("KEY NOT FOUND \r\n"); current = -1; key_press = -1; break;
             }
             if (key_press > -1) // valid key press
             {
 
             if (key_press == 10 && size){ //SEND
-                Report("size: %d\r\n", size);
-                //send message (index size)
-                //delete old message on screen
+                printf("size: %d\r\n", size);
+                //send printf (index size)
+                //delete old printf on screen
                 int j = 0;
 
                 for (j = 0; j < size; j++){
-                    Report("j: %d\r\n", j);
-                    Report("tran_arr[%d]: %c\r\n",j, tran_arr[j]);
+                    printf("j: %d\r\n", j);
+                    printf("tran_arr[%d]: %c\r\n",j, tran_arr[j]);
                     MAP_UARTCharPut(UARTA1_BASE, tran_arr[j]);
                 }
                 for (j = size - 1; j <= 10; j++){
@@ -635,12 +589,16 @@ int main() {
 
             g_ulRefTimerInts = 0;
             }
-            Edge = 0;
-            index = 0;
-            score = 0;
+            //One key press read multiple times
+            //MAP_UtilsDelay(100000);
+            flag = 0;
+            count = 0;
+           //Timer_IF_Start(g_ulBase, TIMER_A, 1);
+            //MAP_TimerLoadSet(g_ulBase, TIMER_A, 5000);
+            MAP_TimerEnable(g_ulBase, TIMER_A);
 
         }
-        if (msgrcv){ // If we have recieved a message, draw from rcv_arr[i]
+        if (msgrcv){ // If we have recieved a printf, draw from rcv_arr[i]
             drawRect(0, 60, 128, 16, BLACK);
             fillRect(0, 60, 128, 16, BLACK);
             int i;
