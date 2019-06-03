@@ -1,1 +1,1 @@
-a15piclw4ix1d1-ats.iot.us-west-2.amazonaws.com
+arn:aws:iot:us-east-1:362423387928:thing/CC3200_Thing
